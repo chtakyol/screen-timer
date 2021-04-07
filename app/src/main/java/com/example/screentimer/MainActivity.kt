@@ -21,13 +21,9 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
     companion object {
         lateinit var deviceManger: DevicePolicyManager
-
         fun lockPhone() {
             deviceManger.lockNow()
         }
-
-        val nowSeconds: Long
-            get() = Calendar.getInstance().timeInMillis / 1000
     }
 
     enum class TimerState{
@@ -38,9 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var timer : CountDownTimer
     private var timerLengthSeconds = 0L
     private var timerState = TimerState.Stopped
-
     private val enableResult = 1
-
     lateinit var compName: ComponentName
     lateinit var btnEnable: Button
     lateinit var btnLock: Button
@@ -50,21 +44,16 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         btnLock = findViewById(R.id.btnLock)
         seekBar = findViewById(R.id.seekBar)
         minTextView = findViewById(R.id.minTextView)
-
         btnLock.setOnClickListener {
             startTimer()
         }
-
         title = "KotlinApp"
         btnEnable = findViewById(R.id.btnEnable)
-
         deviceManger = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         compName = ComponentName(this, DeviceAdmin::class.java)
-
         val active = deviceManger.isAdminActive(compName)
         if (active) {
             btnEnable.text = "Disable"
@@ -74,7 +63,6 @@ class MainActivity : AppCompatActivity() {
             btnEnable.text = "Enable"
             btnLock.visibility = View.GONE
         }
-
         seekBar.max = 60
         seekBar.setOnSeekBarChangeListener(object :
         SeekBar.OnSeekBarChangeListener{
@@ -103,7 +91,6 @@ class MainActivity : AppCompatActivity() {
         when (timerState) {
             TimerState.Running -> {
                 timer.cancel()
-                //val wakeUpTime = setAlarm(this, nowSeconds, secondRemaining)
                 NotificationUtil.showTimerRunning(this, secondRemaining)
                 Intent(this, CountdownIntentService::class.java).also {
                     startService(it)
@@ -124,9 +111,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initTimer(){
-
         timerState = PrefUtil.getTimerState(this)
-
         when (timerState) {
             TimerState.Running -> {
                 CountdownIntentService.stopService()
@@ -144,18 +129,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onTimerFinished(){
-        /*
-        setNewTimerLength()
-
-        //progress_countdown.progress = 0
-
-        PrefUtil.setSecondsRemaining(timerLengthSeconds, this)
-        secondRemaining = timerLengthSeconds
-
-        updateButtons()
-        updateCountDownUI()
-         */
-        //CountdownIntentService.stopService()
         timerState = TimerState.Stopped
         PrefUtil.setTimerState(timerState, this)
         lockPhone()
@@ -176,17 +149,6 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
-    private fun setNewTimerLength(){
-        val lengthInMinutes = PrefUtil.getTimerLenght(this)
-        timerLengthSeconds = (lengthInMinutes * 60L)
-        //progress_countdown.max=timerLengthSecond.toInt()
-    }
-
-    private fun setPreviousTimerLength(){
-        timerLengthSeconds = PrefUtil.getPreviousTimerLengthSeconds(this)
-        //progress_countdown.max=timerLenghtSeconds.toInt()
-    }
-
     private fun updateCountDownUI(){
 
         val minutesUntilFinished = secondRemaining / 60
@@ -195,10 +157,6 @@ class MainActivity : AppCompatActivity() {
         minTextView.text = "$minutesUntilFinished:${
             if (secondStr.length == 2 ) secondStr
             else "0" + secondStr}"
-
-
-
-        //progress_countdown.progress = (timerLengthSeconds - secondsRemaining).toInt()
     }
 
     private fun updateButtons(){

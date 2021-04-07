@@ -8,7 +8,6 @@ import com.example.screentimer.util.PrefUtil
 import kotlin.concurrent.timer
 
 class CountdownIntentService : IntentService("CountdownIntentService") {
-
     init {
         instance = this
     }
@@ -40,7 +39,6 @@ class CountdownIntentService : IntentService("CountdownIntentService") {
                     stopService()
                     MainActivity.lockPhone()
                     PrefUtil.setTimerState(MainActivity.TimerState.Stopped, this)
-                    //TODO: show stop notification.
                 }
                 PrefUtil.setSecondsRemaining(secondRemaining, this)
                 Thread.sleep(1000)
