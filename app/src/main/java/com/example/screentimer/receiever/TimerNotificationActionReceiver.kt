@@ -11,6 +11,7 @@ import com.example.screentimer.util.PrefUtil
 class TimerNotificationActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        /*
         when (intent.action){
             AppConstants.ACTION_STOP -> {
                 MainActivity.removeAlarm(context)
@@ -45,5 +46,7 @@ class TimerNotificationActionReceiver : BroadcastReceiver() {
                 NotificationUtil.showTimerRunning(context, wakeUpTime)
             }
         }
+         */
+
     }
 }

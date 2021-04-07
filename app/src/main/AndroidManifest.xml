@@ -9,10 +9,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ScreenTimer">
+        <service
+            android:name=".CountdownIntentService"
+            android:exported="false"></service>
+
         <receiver
-            android:name=".receiever.TimerTicReceiver"
+            android:name=".receiever.TimerTickReceiver"
             android:enabled="true"
-            android:exported="false"></receiver>
+            android:exported="false" />
         <receiver
             android:name=".receiever.TimerNotificationActionReceiver"
             android:enabled="true"

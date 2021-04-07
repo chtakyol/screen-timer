@@ -1,7 +1,5 @@
 package com.example.screentimer
 
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -9,10 +7,13 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.health.TimerStat
+import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.annotation.Nullable
 import com.example.screentimer.receiever.TimerExpiredReceiver
+import com.example.screentimer.receiever.TimerTickReceiver
 import com.example.screentimer.util.NotificationUtil
 import com.example.screentimer.util.PrefUtil
 import java.util.*
@@ -20,25 +21,6 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
     companion object {
         lateinit var deviceManger: DevicePolicyManager
-        fun setAlarm(context: Context, nowSeconds : Long, secondsRemaining: Long): Long{
-            val wakeUpTime = (nowSeconds + secondsRemaining) * 1000
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val intent = Intent(context, TimerExpiredReceiver::class.java)
-            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, wakeUpTime, pendingIntent)
-            PrefUtil.setAlarmSetTime(nowSeconds, context)
-            return wakeUpTime
-        }
-
-        // TODO: set repeating alarm and trigger TimeTickReceiver
-
-        fun removeAlarm(context: Context){
-            val intent = Intent(context, TimerExpiredReceiver::class.java)
-            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.cancel(pendingIntent)
-            PrefUtil.setAlarmSetTime(0, context)
-        }
 
         fun lockPhone() {
             deviceManger.lockNow()
@@ -52,11 +34,10 @@ class MainActivity : AppCompatActivity() {
         Stopped, Paused, Running
     }
 
+    private var secondRemaining = 0L
     private lateinit var timer : CountDownTimer
     private var timerLengthSeconds = 0L
     private var timerState = TimerState.Stopped
-
-    private var secondRemaining = 0L
 
     private val enableResult = 1
 
@@ -76,8 +57,6 @@ class MainActivity : AppCompatActivity() {
 
         btnLock.setOnClickListener {
             startTimer()
-            timerState = TimerState.Running
-            updateButtons()
         }
 
         title = "KotlinApp"
@@ -116,62 +95,56 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         initTimer()
-
-        removeAlarm(this)
         NotificationUtil.hideTimerNotification(this)
     }
 
     override fun onPause() {
-        super.onPause()
 
-        if (timerState == TimerState.Running){
-            timer.cancel()
-            val wakeUpTime = setAlarm(this, nowSeconds, secondRemaining)
-            NotificationUtil.showTimerRunning(this, secondRemaining)
+        when (timerState) {
+            TimerState.Running -> {
+                timer.cancel()
+                //val wakeUpTime = setAlarm(this, nowSeconds, secondRemaining)
+                NotificationUtil.showTimerRunning(this, secondRemaining)
+                Intent(this, CountdownIntentService::class.java).also {
+                    startService(it)
+                }
+            }
+            TimerState.Paused -> {
+                NotificationUtil.showTimerPaused(this)
+            }
+            TimerState.Stopped -> {
+            }
         }
-        else if (timerState == TimerState.Paused){
-            NotificationUtil.showTimerPaused(this)
-        }
-
+        Log.d("MainActivity",
+                "pause ${secondRemaining.toString()}")
         PrefUtil.setPreviousTimerLengthSeconds(timerLengthSeconds, this)
         PrefUtil.setSecondsRemaining(secondRemaining, this)
         PrefUtil.setTimerState(timerState, this)
+        super.onPause()
     }
 
     private fun initTimer(){
-        timerState = PrefUtil.getTimerState(context = this)
 
-        if (timerState == TimerState.Stopped){
-            setNewTimerLength()
-        }
-        else{
-            setPreviousTimerLength()
-        }
-        secondRemaining = if (timerState == TimerState.Running || timerState == TimerState.Paused)
-            PrefUtil.getSecondsRemaining(context = this)
-        else
-            timerLengthSeconds
+        timerState = PrefUtil.getTimerState(this)
 
-        val alarmSetTime = PrefUtil.getAlarmSetTime(this)
-
-        if (alarmSetTime > 0){
-            secondRemaining -= nowSeconds - alarmSetTime
+        when (timerState) {
+            TimerState.Running -> {
+                CountdownIntentService.stopService()
+                secondRemaining = PrefUtil.getSecondsRemaining(this)
+                updateCountDownUI()
+                startTimer()
+            }
+            TimerState.Paused -> {
+                secondRemaining = PrefUtil.getSecondsRemaining(this)
+                updateCountDownUI()
+            }
+            TimerState.Stopped -> {
+            }
         }
-
-        if (secondRemaining <= 0) {
-            onTimerFinished()
-        }
-        else if (timerState == TimerState.Running){
-            startTimer()
-        }
-
-        updateButtons()
-        updateCountDownUI()
     }
 
     private fun onTimerFinished(){
-        timerState = TimerState.Stopped
-
+        /*
         setNewTimerLength()
 
         //progress_countdown.progress = 0
@@ -181,12 +154,16 @@ class MainActivity : AppCompatActivity() {
 
         updateButtons()
         updateCountDownUI()
-
+         */
+        //CountdownIntentService.stopService()
+        timerState = TimerState.Stopped
+        PrefUtil.setTimerState(timerState, this)
         lockPhone()
     }
 
     private fun startTimer(){
-        timerState = TimerState.Paused
+        timerState = TimerState.Running
+        PrefUtil.setTimerState(timerState, this)
         timer = object : CountDownTimer(secondRemaining * 1000, 1000){
             override fun onFinish() {
                 onTimerFinished()
@@ -211,12 +188,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCountDownUI(){
+
         val minutesUntilFinished = secondRemaining / 60
         val secondsInMinuteUntilFinished = secondRemaining - minutesUntilFinished * 60
         val secondStr = secondsInMinuteUntilFinished.toString()
         minTextView.text = "$minutesUntilFinished:${
             if (secondStr.length == 2 ) secondStr
             else "0" + secondStr}"
+
+
+
         //progress_countdown.progress = (timerLengthSeconds - secondsRemaining).toInt()
     }
 
