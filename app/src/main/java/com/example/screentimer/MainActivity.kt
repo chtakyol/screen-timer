@@ -4,6 +4,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -12,13 +13,18 @@ import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.annotation.Nullable
+import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
+import com.example.screentimer.databinding.ActivityMainBinding
 import com.example.screentimer.receiever.TimerExpiredReceiver
 import com.example.screentimer.receiever.TimerTickReceiver
 import com.example.screentimer.util.NotificationUtil
 import com.example.screentimer.util.PrefUtil
+import com.skumar.flexibleciruclarseekbar.CircularSeekBar
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
     companion object {
         lateinit var deviceManger: DevicePolicyManager
         fun lockPhone() {
@@ -36,48 +42,45 @@ class MainActivity : AppCompatActivity() {
     private var timerState = TimerState.Stopped
     private val enableResult = 1
     lateinit var compName: ComponentName
-    lateinit var btnEnable: Button
-    lateinit var btnLock: Button
-    lateinit var seekBar: SeekBar
-    lateinit var minTextView : TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        btnLock = findViewById(R.id.btnLock)
-        seekBar = findViewById(R.id.seekBar)
-        minTextView = findViewById(R.id.minTextView)
-        btnLock.setOnClickListener {
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        configureSeekBar()
+
+        binding.btnLock.setOnClickListener {
             startTimer()
         }
-        title = "KotlinApp"
-        btnEnable = findViewById(R.id.btnEnable)
-        deviceManger = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        compName = ComponentName(this, DeviceAdmin::class.java)
-        val active = deviceManger.isAdminActive(compName)
-        if (active) {
-            btnEnable.text = "Disable"
-            btnLock.visibility = View.VISIBLE
-        }
-        else {
-            btnEnable.text = "Enable"
-            btnLock.visibility = View.GONE
-        }
-        seekBar.max = 60
-        seekBar.setOnSeekBarChangeListener(object :
-        SeekBar.OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+
+        binding.mCircularSeekBar.setOnCircularSeekBarChangeListener(object : CircularSeekBar.OnCircularSeekBarChangeListener {
+            override fun onProgressChanged(CircularSeekBar: CircularSeekBar, progress: Float, fromUser: Boolean) {
                 secondRemaining = progress.toLong()
                 updateCountDownUI()
             }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+            override fun onStartTrackingTouch(CircularSeekBar: CircularSeekBar) {
+
             }
 
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-            }
+            override fun onStopTrackingTouch(CircularSeekBar: CircularSeekBar) {
 
+            }
         })
+
+        title = "KotlinApp"
+        deviceManger = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        compName = ComponentName(this, DeviceAdmin::class.java)
+        val active = deviceManger.isAdminActive(compName)
+        if (active) {
+            binding.btnEnable.text = "Disable"
+            binding.btnLock.visibility = View.VISIBLE
+        }
+        else {
+            binding.btnEnable.text = "Enable"
+            binding.btnLock.visibility = View.GONE
+        }
     }
 
     override fun onResume() {
@@ -154,9 +157,7 @@ class MainActivity : AppCompatActivity() {
         val minutesUntilFinished = secondRemaining / 60
         val secondsInMinuteUntilFinished = secondRemaining - minutesUntilFinished * 60
         val secondStr = secondsInMinuteUntilFinished.toString()
-        minTextView.text = "$minutesUntilFinished:${
-            if (secondStr.length == 2 ) secondStr
-            else "0" + secondStr}"
+        binding.minTextView.setText("$secondStr")
     }
 
     private fun updateButtons(){
@@ -171,8 +172,8 @@ class MainActivity : AppCompatActivity() {
         val active = deviceManger.isAdminActive(compName)
         if (active) {
             deviceManger.removeActiveAdmin(compName)
-            btnEnable.text = "Enable"
-            btnLock.visibility = View.GONE
+            binding.btnEnable.text = "Enable"
+            binding.btnLock.visibility = View.GONE
         }
         else {
             val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
@@ -187,8 +188,8 @@ class MainActivity : AppCompatActivity() {
         when (requestCode) {
             enableResult -> {
                 if (resultCode == RESULT_OK) {
-                    btnEnable.text = "Disable"
-                    btnLock.visibility = View.VISIBLE
+                    binding.btnEnable.text = "Disable"
+                    binding.btnLock.visibility = View.VISIBLE
                 } else {
                     Toast.makeText(
                             applicationContext, "Failed!",
@@ -198,6 +199,16 @@ class MainActivity : AppCompatActivity() {
                 return
             }
         }
+    }
+
+    private fun configureSeekBar(){
+        binding.mCircularSeekBar.setDrawMarkings(false)
+        binding.mCircularSeekBar.setRoundedEdges(true)
+        binding.mCircularSeekBar.setIsGradient(false)
+        binding.mCircularSeekBar.arcColor = ContextCompat.getColor(this, R.color.lightPurple)
+        binding.mCircularSeekBar.arcThickness = 48
+//        binding.mCircularSeekBar.progress = progressValue
+        binding.mCircularSeekBar.valueStep = 1
     }
 
 }
