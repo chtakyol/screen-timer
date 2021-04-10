@@ -5,6 +5,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.Animatable
+import android.graphics.drawable.AnimatedVectorDrawable
+import android.graphics.drawable.Drawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -15,6 +18,8 @@ import android.widget.*
 import androidx.annotation.Nullable
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.convertTo
+import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.example.screentimer.databinding.ActivityMainBinding
 import com.example.screentimer.receiever.TimerExpiredReceiver
 import com.example.screentimer.receiever.TimerTickReceiver
@@ -24,7 +29,6 @@ import com.skumar.flexibleciruclarseekbar.CircularSeekBar
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding
     companion object {
         lateinit var deviceManger: DevicePolicyManager
         fun lockPhone() {
@@ -42,6 +46,8 @@ class MainActivity : AppCompatActivity() {
     private var timerState = TimerState.Stopped
     private val enableResult = 1
     lateinit var compName: ComponentName
+    private lateinit var binding: ActivityMainBinding
+    private var isClicked = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,10 +56,6 @@ class MainActivity : AppCompatActivity() {
 
         configureSeekBar()
 
-        binding.btnLock.setOnClickListener {
-            startTimer()
-        }
-
         binding.mCircularSeekBar.setOnCircularSeekBarChangeListener(object : CircularSeekBar.OnCircularSeekBarChangeListener {
             override fun onProgressChanged(CircularSeekBar: CircularSeekBar, progress: Float, fromUser: Boolean) {
                 secondRemaining = progress.toLong()
@@ -61,13 +63,27 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onStartTrackingTouch(CircularSeekBar: CircularSeekBar) {
-
             }
 
             override fun onStopTrackingTouch(CircularSeekBar: CircularSeekBar) {
-
             }
         })
+
+
+        binding.imageView.setOnClickListener {
+            isClicked = if (isClicked){
+                binding.imageView.setImageResource(R.drawable.avd_play_to_pause)
+                val avdCheckToStop: AnimatedVectorDrawable = binding.imageView.drawable as AnimatedVectorDrawable
+                avdCheckToStop.start()
+                startTimer()
+                false
+            }else{
+                binding.imageView.setImageResource(R.drawable.avd_pause_to_play)
+                val avdCheckToStop: AnimatedVectorDrawable = binding.imageView.drawable as AnimatedVectorDrawable
+                avdCheckToStop.start()
+                true
+            }
+        }
 
         title = "KotlinApp"
         deviceManger = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
@@ -75,11 +91,9 @@ class MainActivity : AppCompatActivity() {
         val active = deviceManger.isAdminActive(compName)
         if (active) {
             binding.btnEnable.text = "Disable"
-            binding.btnLock.visibility = View.VISIBLE
         }
         else {
             binding.btnEnable.text = "Enable"
-            binding.btnLock.visibility = View.GONE
         }
     }
 
@@ -132,8 +146,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onTimerFinished(){
+
         timerState = TimerState.Stopped
+        isClicked = true
         PrefUtil.setTimerState(timerState, this)
+        binding.imageView.setImageResource(R.drawable.avd_pause_to_play)
+        val avdCheckToStop: AnimatedVectorDrawable = binding.imageView.drawable as AnimatedVectorDrawable
+        avdCheckToStop.start()
         lockPhone()
     }
 
@@ -146,6 +165,7 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onTick(millisUntilFinished: Long) {
                 secondRemaining = millisUntilFinished / 1000
+                binding.mCircularSeekBar.progress = secondRemaining.toFloat()
                 updateCountDownUI()
                 updateNotification()
             }
@@ -153,15 +173,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCountDownUI(){
-
         val minutesUntilFinished = secondRemaining / 60
         val secondsInMinuteUntilFinished = secondRemaining - minutesUntilFinished * 60
         val secondStr = secondsInMinuteUntilFinished.toString()
-        binding.minTextView.setText("$secondStr")
-    }
-
-    private fun updateButtons(){
-        NotificationUtil.showTimerRunning(this, secondRemaining)
+        binding.minTextView.text = "$secondStr"
     }
 
     private fun updateNotification(){
@@ -173,7 +188,6 @@ class MainActivity : AppCompatActivity() {
         if (active) {
             deviceManger.removeActiveAdmin(compName)
             binding.btnEnable.text = "Enable"
-            binding.btnLock.visibility = View.GONE
         }
         else {
             val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
@@ -189,7 +203,6 @@ class MainActivity : AppCompatActivity() {
             enableResult -> {
                 if (resultCode == RESULT_OK) {
                     binding.btnEnable.text = "Disable"
-                    binding.btnLock.visibility = View.VISIBLE
                 } else {
                     Toast.makeText(
                             applicationContext, "Failed!",
@@ -207,7 +220,6 @@ class MainActivity : AppCompatActivity() {
         binding.mCircularSeekBar.setIsGradient(false)
         binding.mCircularSeekBar.arcColor = ContextCompat.getColor(this, R.color.lightPurple)
         binding.mCircularSeekBar.arcThickness = 48
-//        binding.mCircularSeekBar.progress = progressValue
         binding.mCircularSeekBar.valueStep = 1
     }
 

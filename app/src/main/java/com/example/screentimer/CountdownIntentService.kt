@@ -47,13 +47,4 @@ class CountdownIntentService : IntentService("CountdownIntentService") {
             Thread.currentThread().interrupt()
         }
     }
-
-    override fun onDestroy() {
-        // TODO: can remove this func not necessary, can write logic to stopService.
-        super.onDestroy()
-        Log.d("CountdownService",
-                "Service is destroyed.")
-    }
-
-
 }
