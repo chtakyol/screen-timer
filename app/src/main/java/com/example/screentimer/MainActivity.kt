@@ -4,29 +4,19 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.drawable.Animatable
 import android.graphics.drawable.AnimatedVectorDrawable
-import android.graphics.drawable.Drawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.os.health.TimerStat
 import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.annotation.Nullable
 import androidx.core.content.ContextCompat
-import androidx.core.content.res.ResourcesCompat
-import androidx.core.graphics.convertTo
-import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.example.screentimer.databinding.ActivityMainBinding
-import com.example.screentimer.receiever.TimerExpiredReceiver
-import com.example.screentimer.receiever.TimerTickReceiver
 import com.example.screentimer.util.NotificationUtil
 import com.example.screentimer.util.PrefUtil
 import com.skumar.flexibleciruclarseekbar.CircularSeekBar
-import java.util.*
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -69,7 +59,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-
         binding.imageView.setOnClickListener {
             isClicked = if (isClicked){
                 binding.imageView.setImageResource(R.drawable.avd_play_to_pause)
@@ -99,22 +88,24 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // stop service if it running and start timer
+        Intent(this, CountdownIntentService::class.java).also {
+            stopService(it)
+        }
         initTimer()
         NotificationUtil.hideTimerNotification(this)
     }
 
     override fun onPause() {
-
         when (timerState) {
             TimerState.Running -> {
                 timer.cancel()
-                NotificationUtil.showTimerRunning(this, secondRemaining)
                 Intent(this, CountdownIntentService::class.java).also {
                     startService(it)
                 }
+                NotificationUtil.showTimerRunning(this, secondRemaining)
             }
             TimerState.Paused -> {
-                NotificationUtil.showTimerPaused(this)
             }
             TimerState.Stopped -> {
             }
@@ -131,7 +122,6 @@ class MainActivity : AppCompatActivity() {
         timerState = PrefUtil.getTimerState(this)
         when (timerState) {
             TimerState.Running -> {
-                CountdownIntentService.stopService()
                 secondRemaining = PrefUtil.getSecondsRemaining(this)
                 updateCountDownUI()
                 startTimer()

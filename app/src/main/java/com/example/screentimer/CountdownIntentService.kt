@@ -1,33 +1,26 @@
 package com.example.screentimer
 
 import android.app.IntentService
+import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.os.IBinder
 import android.util.Log
+import androidx.core.app.JobIntentService
 import com.example.screentimer.util.NotificationUtil
 import com.example.screentimer.util.PrefUtil
 import kotlin.concurrent.timer
 
-class CountdownIntentService : IntentService("CountdownIntentService") {
-    init {
-        instance = this
-    }
-
+class CountdownIntentService : Service() {
     companion object {
-        private lateinit var instance: CountdownIntentService
-
-        var isRunning = false
-
-        fun stopService(){
-            Log.d("CountdownService", "Service is stopping.")
-            instance.stopSelf()
-            isRunning = false
-        }
+        const val JOBID = 1
     }
 
     private var secondRemaining = 0L
+    private var isRunning = false
 
-    override fun onHandleIntent(intent: Intent?) {
-        try {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Thread {
             isRunning = true
             secondRemaining = PrefUtil.getSecondsRemaining(this)
             while (isRunning){
@@ -36,15 +29,24 @@ class CountdownIntentService : IntentService("CountdownIntentService") {
                 NotificationUtil.showTimerRunning(this, secondRemaining)
                 secondRemaining -= 1
                 if (secondRemaining == 0L){
-                    stopService()
                     MainActivity.lockPhone()
                     PrefUtil.setTimerState(MainActivity.TimerState.Stopped, this)
+                    this.stopSelf()
                 }
                 PrefUtil.setSecondsRemaining(secondRemaining, this)
                 Thread.sleep(1000)
             }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-        }
+        }.start()
+        return START_STICKY
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d("CountdownService",
+                "Service is destroyed")
+        isRunning = false
+
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
 }

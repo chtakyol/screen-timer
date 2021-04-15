@@ -11,27 +11,7 @@
         android:theme="@style/Theme.ScreenTimer">
         <service
             android:name=".CountdownIntentService"
-            android:exported="false"></service>
-
-        <receiver
-            android:name=".receiever.TimerTickReceiver"
-            android:enabled="true"
-            android:exported="false" />
-        <receiver
-            android:name=".receiever.TimerNotificationActionReceiver"
-            android:enabled="true"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="stop" />
-                <action android:name="pause" />
-                <action android:name="resume" />
-                <action android:name="start" />
-            </intent-filter>
-        </receiver>
-        <receiver
-            android:name=".receiever.TimerExpiredReceiver"
-            android:enabled="true"
-            android:exported="false" />
+            android:exported="false"/>
 
         <activity android:name=".MainActivity">
             <intent-filter>
