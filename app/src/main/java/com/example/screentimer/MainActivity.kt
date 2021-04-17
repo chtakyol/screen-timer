@@ -44,6 +44,17 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        title = "KotlinApp"
+        deviceManger = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        compName = ComponentName(this, DeviceAdmin::class.java)
+        val active = deviceManger.isAdminActive(compName)
+        if (active){
+            binding.switch1.isChecked = true
+        }
+        else{
+
+        }
+
         configureSeekBar()
 
         binding.mCircularSeekBar.setOnCircularSeekBarChangeListener(object : CircularSeekBar.OnCircularSeekBarChangeListener {
@@ -74,15 +85,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        title = "KotlinApp"
-        deviceManger = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        compName = ComponentName(this, DeviceAdmin::class.java)
-        val active = deviceManger.isAdminActive(compName)
-        if (active) {
-            binding.btnEnable.text = "Disable"
-        }
-        else {
-            binding.btnEnable.text = "Enable"
+        binding.switch1.setOnClickListener {
+            enablePhone()
         }
     }
 
@@ -173,11 +177,10 @@ class MainActivity : AppCompatActivity() {
         NotificationUtil.showTimerRunning(this, secondRemaining)
     }
 
-    fun enablePhone(view: View) {
+    private fun enablePhone() {
         val active = deviceManger.isAdminActive(compName)
         if (active) {
             deviceManger.removeActiveAdmin(compName)
-            binding.btnEnable.text = "Enable"
         }
         else {
             val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
@@ -192,7 +195,6 @@ class MainActivity : AppCompatActivity() {
         when (requestCode) {
             enableResult -> {
                 if (resultCode == RESULT_OK) {
-                    binding.btnEnable.text = "Disable"
                 } else {
                     Toast.makeText(
                             applicationContext, "Failed!",
