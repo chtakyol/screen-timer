@@ -3,6 +3,8 @@ package com.example.screentimer.services
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -20,7 +22,7 @@ import com.example.screentimer.other.Constants.NOTIFICATION_CHANNEL_NAME
 import com.example.screentimer.other.Constants.NOTIFICATION_ID
 import com.example.screentimer.other.Constants.TIMER_UPDATE_INTERVAL
 import com.example.screentimer.other.TrackingUtilities
-import com.google.android.gms.location.FusedLocationProviderClient
+import com.example.screentimer.receiver.DeviceAdmin
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +36,7 @@ class TrackingService : LifecycleService() {
     var isFirst = true
 
     private val timerRunInSeconds = MutableLiveData<Long>()
-    private val countDownTimeInMillis = MutableLiveData<Long>()
+    private val countDownTimeInSeconds = MutableLiveData<Long>()
 
     @Inject
     lateinit var baseNotificationBuilder: NotificationCompat.Builder
@@ -43,15 +45,16 @@ class TrackingService : LifecycleService() {
 
     companion object{
         val timeRunInMillis = MutableLiveData<Long>()
-
+        val countDownInMillis = MutableLiveData<Long>()
         val isTracking = MutableLiveData<Boolean>()
     }
 
     private fun postInitialValues(){
         isTracking.postValue(false)
         timerRunInSeconds.postValue(0L)
-        countDownTimeInMillis.postValue(0L)
         timeRunInMillis.postValue(0L)
+        countDownTimeInSeconds.postValue(0L)
+        countDownInMillis.postValue(0L)
     }
 
     override fun onCreate() {
@@ -66,7 +69,7 @@ class TrackingService : LifecycleService() {
                 ACTION_START_OR_RESUME_SERVICE -> {
                     if(isFirst){
                         val duration = it.getLongExtra("duration", 0L)
-                        countDownTimeInMillis.postValue(duration)
+                        countDownTimeInSeconds.postValue(duration)
                         startForegroundService()
                         isFirst = false
                     }
@@ -151,10 +154,13 @@ class TrackingService : LifecycleService() {
             while (isTracking.value!!){
                 lapTime = System.currentTimeMillis() - timeStarted
                 timeRunInMillis.postValue(timeRun + lapTime)
-                if (timeRunInMillis.value!! >= lastSecondTimestamp + 1000L && countDownTimeInMillis.value!! > 0){
+                if (timeRunInMillis.value!! >= lastSecondTimestamp + 1000L && countDownTimeInSeconds.value!! > 0){
                     timerRunInSeconds.postValue(timerRunInSeconds.value!! + 1)
-                    countDownTimeInMillis.postValue(countDownTimeInMillis.value!! - 1)
+                    countDownTimeInSeconds.postValue(countDownTimeInSeconds.value!! - 1)
                     lastSecondTimestamp += 1000L
+                    if (countDownTimeInSeconds.value!! == 1L){
+                        // todo: access device admin and turn off screen
+                    }
                 }
                 delay(TIMER_UPDATE_INTERVAL)
             }
@@ -174,7 +180,7 @@ class TrackingService : LifecycleService() {
 
         startForeground(NOTIFICATION_ID, baseNotificationBuilder.build())
 
-        countDownTimeInMillis.observe(this, Observer {
+        countDownTimeInSeconds.observe(this, Observer {
             val notification = curNotificationBuilder
                 .setContentText(TrackingUtilities.getFormattedStopWatchTime(it * 1000L))
             notificationManager.notify(NOTIFICATION_ID, notification.build())
