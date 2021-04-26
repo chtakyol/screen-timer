@@ -1,2 +1,2 @@
-# screen-timer (on break)
+# screen-timer
 Screen timer app for android devices.

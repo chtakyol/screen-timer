@@ -30,16 +30,23 @@ class CounterFragment : Fragment(R.layout.fragment_counter) {
 
     private var isTracking = false
 
-    private var curTimeInMillis = 0L
+    private var curTimeInMillis = 999L
+
+    lateinit var deviceManager: DevicePolicyManager
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        checkDeviceManagerIsActive()
+        btnToggleRun.setOnClickListener {
+            toggleRun()
+        }
+        subscribeToObservers()
+    }
 
-        // Device admin policy permission request.
-        // todo: refactor to method keep clean amk!
-        val deviceManger = activity?.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+    private fun checkDeviceManagerIsActive(){
+        deviceManager = activity?.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         val compName = ComponentName(requireContext(), DeviceAdmin::class.java)
-        val active = deviceManger.isAdminActive(compName)
+        val active = deviceManager.isAdminActive(compName)
 
         if (!active) {
             val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
@@ -47,36 +54,28 @@ class CounterFragment : Fragment(R.layout.fragment_counter) {
             intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "You should enable the app!")
             startActivityForResult(intent, enableResult)
         }
-
-        Timber.d("active return!" + active)
-        //-------------------------------------------------
-        btnToggleRun.setOnClickListener {
-            toggleRun()
-        }
-
-        subscribeToObservers()
     }
-
 
 
     private fun subscribeToObservers() {
         TrackingService.isTracking.observe(viewLifecycleOwner, Observer {
             updateTracking(it)
         })
-
-        TrackingService.timeRunInMillis.observe(viewLifecycleOwner, Observer {
+        TrackingService.countDownInMillis.observe(viewLifecycleOwner, Observer {
             curTimeInMillis = it
             val formattedTime = TrackingUtilities.getFormattedStopWatchTime(curTimeInMillis, true)
             tvTimer.text = formattedTime
+            if(curTimeInMillis < 0L){
+                curTimeInMillis = 0L
+                Timber.d("from fragment")
+                deviceManager.lockNow()
+            }
         })
-
-
     }
 
     private fun toggleRun(){
-        // todo replace wih image buttons
         if(isTracking){
-            sendCommandToService(ACTION_PAUSE, 20L)
+            sendCommandToService(ACTION_PAUSE, 25L)
         }
         else {
             sendCommandToService(ACTION_START_OR_RESUME_SERVICE, 20L)
