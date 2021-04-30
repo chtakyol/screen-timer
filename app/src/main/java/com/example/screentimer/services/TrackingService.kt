@@ -29,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.sql.Time
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -84,8 +85,8 @@ class TrackingService : LifecycleService() {
                 ACTION_START_OR_RESUME_SERVICE -> {
                     if(isFirst){
                         val duration = it.getLongExtra("duration", 0L)
-                        durationInSecond = duration
-                        durationInMillis = duration * 1000L
+                        durationInSecond = duration / 1000L
+                        durationInMillis = duration
                         countDownTimeInSeconds.postValue(durationInSecond)
                         countDownInMillis.postValue(durationInMillis)
                         startForegroundService()
@@ -177,6 +178,7 @@ class TrackingService : LifecycleService() {
             while (isTracking.value!!){
                 lapTime = System.currentTimeMillis() - timeStarted
                 timeRunInMillis.postValue(timeRun + lapTime)
+
                 if (countDownInMillis.value!! >= 0){
                     countDownInMillis.postValue(durationInMillis - lapTime)
                     if (timeRunInMillis.value!! >= lastSecondTimestamp + 1000L){

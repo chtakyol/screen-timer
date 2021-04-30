@@ -31,6 +31,7 @@ object ServiceModule {
         PendingIntent.FLAG_UPDATE_CURRENT
     )
 
+    //todo: stylize notification
     @ServiceScoped
     @Provides
     fun provideBaseNotificationBuilder(

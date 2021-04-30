@@ -2,6 +2,7 @@
     <string name="app_name">Screen Timer</string>
     <string name="sample_device_admin">Screen Timer</string>
     <string name="sample_device_admin_description">Screen Timer</string>
+    <string name="slider_desc">Min</string>
     <string-array name="filter_options">
         <item>Date</item>
         <item>Running Time</item>
